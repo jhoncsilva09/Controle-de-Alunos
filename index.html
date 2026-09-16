@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f5f7fb">
+    <title>Controle de Alunos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+    <div class="app-shell">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-mark"><i data-lucide="graduation-cap" width="20"></i></div>
+                <div>
+                    <h1>Controle de Alunos</h1>
+                </div>
+            </div>
+            <div class="connection"><span class="connection-dot" id="connectionDot"></span><span
+                    id="connectionText">Modo local</span></div>
+        </header>
+        <main>
+            <div class="heading-row">
+                <div>
+                    <p class="eyebrow">Visão geral</p>
+                    <h2>Seus alunos</h2>
+                    <p>Acompanhe os registros e mantenha tudo em ordem.</p>
+                </div>
+                <button class="primary-btn" id="newStudentBtn"><i data-lucide="plus" width="17"></i>Novo aluno</button>
+            </div>
+            <div class="setup-note" id="setupNote">Supabase ainda não está configurado. Os dados estão sendo salvos
+                apenas neste navegador. Adicione sua URL e chave no bloco <strong>SUPABASE_CONFIG</strong> do arquivo
+                para conectar o banco.</div>
+            <section class="stats">
+                <div class="stat"><span class="stat-label">Total de alunos</span>
+                    <div class="stat-value" id="totalCount">0</div>
+                </div>
+                <div class="stat"><span class="stat-label">Testes registrados</span>
+                    <div class="stat-value teal" id="testCount">0</div>
+                </div>
+                <div class="stat"><span class="stat-label">Último cadastro</span>
+                    <div class="stat-value" id="latestDate">--/--/----</div>
+                </div>
+            </section>
+            <section class="list-panel">
+                <div class="toolbar">
+                    <h3>Lista de alunos</h3>
+                    <div class="search"><i data-lucide="search" width="16"></i><input id="searchInput" type="search"
+                            placeholder="Buscar por nome ou CPF..." aria-label="Buscar alunos"></div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th><button class="sort-btn" data-sort="name">Aluno <i
+                                            data-lucide="chevrons-up-down"></i></button></th>
+                                <th><button class="sort-btn" data-sort="cpf">CPF <i
+                                            data-lucide="chevrons-up-down"></i></button></th>
+                                <th><button class="sort-btn" data-sort="last_class">Última aula <i
+                                            data-lucide="chevrons-up-down"></i></button></th>
+                                <th><button class="sort-btn" data-sort="last_test">Último teste <i
+                                            data-lucide="chevrons-up-down"></i></button></th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentRows"></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+    <div class="modal-backdrop" id="modalBackdrop">
+        <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+            <div class="modal-header">
+                <div>
+                    <h3 id="modalTitle">Novo aluno</h3>
+                    <p>Preencha os dados do cadastro abaixo.</p>
+                </div><button class="close-btn" id="closeModal" aria-label="Fechar"><i data-lucide="x"></i></button>
+            </div>
+            <form id="studentForm">
+                <div class="form-grid">
+                    <div class="field full"><label for="name">Nome completo</label><input id="name" name="name" required
+                            autocomplete="name" placeholder="Ex.: Marina Souza"><small></small></div>
+                    <div class="field"><label for="cpf">CPF</label><input id="cpf" name="cpf" required
+                            inputmode="numeric" maxlength="14" placeholder="000.000.000-00"><small></small></div>
+                    <div class="field"><label for="lastClass">Última aula</label><input id="lastClass" name="last_class"
+                            required type="date"><small></small></div>
+                    <div class="field"><label for="lastTest">Último teste <span
+                                style="color:var(--muted);font-weight:400">(opcional)</span></label><input id="lastTest"
+                            name="last_test" type="date"><small></small></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="secondary-btn"
+                        id="cancelModal">Cancelar</button><button type="submit" class="primary-btn" id="saveBtn"><i
+                            data-lucide="check" width="16"></i>Salvar aluno</button></div>
+            </form>
+        </section>
+    </div>
+    <div class="toast" id="toast"></div>
+    <script src="script.js"></script>
+</body>
+
+</html>
