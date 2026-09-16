@@ -81,7 +81,7 @@ document.querySelectorAll('.sort-btn').forEach((button) => button.addEventListen
 $('#studentRows').addEventListener('click', async (event) => { const button = event.target.closest('button'); if (!button) return; const student = students.find((item) => item.id === button.dataset.id); if (button.classList.contains('edit')) openModal(student); if (button.classList.contains('delete') && student && confirm(`Excluir o cadastro de ${student.name}?`)) { try { await removeStudent(student.id); } catch (error) { showToast('Não foi possível excluir o cadastro.'); } } });
 $('#studentForm').addEventListener('submit', async (event) => {
     event.preventDefault();
-    const form = new FormData(event.target); const record = { name: form.get('name').trim(), cpf: formatCPF(form.get('cpf')), last_class: form.get('last_class'), last_test: form.get('last_test') || null };
+    const form = new FormData(event.target); const record = { name: form.get('name').trim(), cpf: formatCPF(form.get('cpf')), last_class: form.get('last_class') || null, last_test: form.get('last_test') || null };
     document.querySelectorAll('.field small').forEach((error) => error.textContent = '');
     if (record.name.length < 3) { $('#name').nextElementSibling.textContent = 'Informe o nome completo.'; return; }
     if (!isValidCPF(record.cpf)) { $('#cpf').nextElementSibling.textContent = 'Informe um CPF válido.'; return; }
