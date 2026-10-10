@@ -13,7 +13,9 @@
         rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 </head>
 
 <body>
@@ -25,10 +27,30 @@
                     <h1>Controle de Alunos</h1>
                 </div>
             </div>
-            <div class="connection"><span class="connection-dot" id="connectionDot"></span><span
-                    id="connectionText">Modo local</span></div>
+            <div class="topbar-actions">
+                <div class="connection"><span class="connection-dot" id="connectionDot"></span><span
+                        id="connectionText">Conectando ao Firebase...</span></div>
+                <button class="secondary-btn sign-out-btn" id="signOutBtn" type="button" hidden>Sair</button>
+            </div>
         </header>
-        <main>
+        <section class="login-screen" id="loginScreen">
+            <form class="login-card" id="loginForm">
+                <p class="eyebrow">Acesso restrito</p>
+                <h2>Entrar</h2>
+                <p class="login-description">Entre com o e-mail e a senha cadastrados no Firebase Authentication.</p>
+                <div class="field">
+                    <label for="loginEmail">E-mail</label>
+                    <input id="loginEmail" name="email" type="email" required autocomplete="username">
+                </div>
+                <div class="field">
+                    <label for="loginPassword">Senha</label>
+                    <input id="loginPassword" name="password" type="password" required autocomplete="current-password">
+                </div>
+                <p class="login-error" id="loginError" role="alert"></p>
+                <button class="primary-btn login-submit" id="loginBtn" type="submit">Entrar</button>
+            </form>
+        </section>
+        <main id="appMain" hidden>
             <div class="heading-row">
                 <div>
                     <p class="eyebrow">Visão geral</p>
@@ -37,9 +59,6 @@
                 </div>
                 <button class="primary-btn" id="newStudentBtn"><i data-lucide="plus" width="17"></i>Novo aluno</button>
             </div>
-            <div class="setup-note" id="setupNote">Supabase ainda não está configurado. Os dados estão sendo salvos
-                apenas neste navegador. Adicione sua URL e chave no bloco <strong>SUPABASE_CONFIG</strong> do arquivo
-                para conectar o banco.</div>
             <section class="stats">
                 <div class="stat"><span class="stat-label">Total de alunos</span>
                     <div class="stat-value" id="totalCount">0</div>
