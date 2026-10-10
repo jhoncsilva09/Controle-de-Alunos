@@ -1,7 +1,15 @@
-// Preencha estes valores com as credenciais públicas do seu projeto Supabase.
-const SUPABASE_CONFIG = { url: 'https://daozrnvwxdlncllbufru.supabase.co', anonKey: 'sb_publishable_TaPc5ycAScv_AMqCHSV47A_8_MfP2G_' };
-const STORAGE_KEY = 'controle-de-alunos-records';
-let supabaseClient = null;
+const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyA2LF23-xbhuOhSc-zmkSTHUB5IhLkkNLs",
+    authDomain: "controle-de-alunos-b1bc7.firebaseapp.com",
+    projectId: "controle-de-alunos-b1bc7",
+    storageBucket: "controle-de-alunos-b1bc7.firebasestorage.app",
+    messagingSenderId: "841074319963",
+    appId: "1:841074319963:web:e2e02dda91f08a4806d57e"
+};
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const studentsCollection = db.collection('students');
 let students = [];
 let editingId = null;
 let sortState = { key: 'name', direction: 'asc' };
@@ -9,6 +17,10 @@ let sortState = { key: 'name', direction: 'asc' };
 const $ = (selector) => document.querySelector(selector);
 const formatCPF = (value) => value.replace(/\D/g, '').slice(0, 11).replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
 const formatDate = (value) => value ? new Date(`${value}T12:00:00`).toLocaleDateString('pt-BR') : '--/--/----';
+const formatCreatedDate = (value) => {
+    const date = value?.toDate ? value.toDate() : new Date(value);
+    return Number.isNaN(date.getTime()) ? '--/--/----' : date.toLocaleDateString('pt-BR');
+};
 const initials = (name) => name.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase();
 const escapeHTML = (value) => String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
 
@@ -26,33 +38,31 @@ function isValidCPF(value) {
 }
 
 function showToast(message) { const toast = $('#toast'); toast.textContent = message; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2800); }
-function setConnection(online) { $('#connectionDot').classList.toggle('online', online); $('#connectionText').textContent = online ? 'Supabase conectado' : 'Modo local'; $('#setupNote').classList.toggle('show', !online); }
+function setConnection(online) { $('#connectionDot').classList.toggle('online', online); $('#connectionText').textContent = online ? 'Firebase conectado' : 'Aguardando login'; }
 
 async function loadStudents() {
-    if (supabaseClient) {
-        const { data, error } = await supabaseClient.from('students').select('*');
-        if (error) { showToast('Não foi possível carregar o Supabase.'); console.error(error); return; }
-        students = data || [];
-    } else students = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    const snapshot = await studentsCollection.get();
+    students = snapshot.docs.map((document) => ({ id: document.id, ...document.data() }));
     render();
 }
 
 async function saveStudent(record) {
-    if (supabaseClient) {
-        const { data, error } = editingId ? await supabaseClient.from('students').update(record).eq('id', editingId).select().single() : await supabaseClient.from('students').insert(record).select().single();
-        if (error) throw error;
-        if (editingId) students = students.map((student) => student.id === editingId ? data : student); else students.push(data);
+    if (editingId) {
+        await studentsCollection.doc(editingId).update(record);
+        students = students.map((student) => student.id === editingId ? { ...student, ...record } : student);
     } else {
-        if (editingId) students = students.map((student) => student.id === editingId ? { ...student, ...record } : student);
-        else students.push({ ...record, id: crypto.randomUUID(), created_at: new Date().toISOString() });
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(students));
+        const document = await studentsCollection.add({
+            ...record,
+            created_at: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        const savedStudent = await document.get();
+        students.push({ id: document.id, ...savedStudent.data() });
     }
 }
 
 async function removeStudent(id) {
-    if (supabaseClient) { const { error } = await supabaseClient.from('students').delete().eq('id', id); if (error) throw error; }
+    await studentsCollection.doc(id).delete();
     students = students.filter((student) => student.id !== id);
-    if (!supabaseClient) localStorage.setItem(STORAGE_KEY, JSON.stringify(students));
     render(); showToast('Cadastro excluído.');
 }
 
@@ -63,8 +73,12 @@ function render() {
     $('#studentRows').innerHTML = filtered.length ? filtered.map((student) => `<tr><td><div class="student-name"><span class="avatar">${escapeHTML(initials(student.name))}</span>${escapeHTML(student.name)}</div></td><td class="cpf">${escapeHTML(student.cpf)}</td><td class="date">${formatDate(student.last_class)}</td><td class="date">${formatDate(student.last_test)}</td><td><div class="actions"><button class="icon-btn edit" data-id="${student.id}" title="Editar aluno" aria-label="Editar aluno"><i data-lucide="pencil" width="16"></i></button><button class="icon-btn delete" data-id="${student.id}" title="Excluir aluno" aria-label="Excluir aluno"><i data-lucide="trash-2" width="16"></i></button></div></td></tr>`).join('') : '<tr><td colspan="5"><div class="empty"><i data-lucide="users-round" width="29"></i><strong>Nenhum aluno encontrado</strong><span>Cadastre o primeiro aluno ou ajuste sua busca.</span></div></td></tr>';
     $('#totalCount').textContent = students.length;
     $('#testCount').textContent = students.filter((student) => student.last_test).length;
-    const latest = [...students].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))[0];
-    $('#latestDate').textContent = latest?.created_at ? formatDate(latest.created_at.slice(0, 10)) : '--/--/----';
+    const latest = [...students].sort((a, b) => {
+        const dateA = a.created_at?.toDate ? a.created_at.toDate().getTime() : new Date(a.created_at || 0).getTime();
+        const dateB = b.created_at?.toDate ? b.created_at.toDate().getTime() : new Date(b.created_at || 0).getTime();
+        return dateB - dateA;
+    })[0];
+    $('#latestDate').textContent = latest?.created_at ? formatCreatedDate(latest.created_at) : '--/--/----';
     lucide.createIcons();
 }
 
@@ -91,5 +105,47 @@ $('#studentForm').addEventListener('submit', async (event) => {
     try { await saveStudent(record); closeModal(); render(); showToast(wasEditing ? 'Cadastro atualizado.' : 'Aluno cadastrado com sucesso.'); } catch (error) { showToast('Não foi possível salvar o cadastro.'); console.error(error); } finally { $('#saveBtn').disabled = false; }
 });
 
-if (SUPABASE_CONFIG.url && SUPABASE_CONFIG.anonKey) { supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey); setConnection(true); } else setConnection(false);
-lucide.createIcons(); loadStudents();
+$('#loginForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    $('#loginError').textContent = '';
+    $('#loginBtn').disabled = true;
+    const form = new FormData(event.currentTarget);
+    try {
+        await auth.signInWithEmailAndPassword(form.get('email').trim(), form.get('password'));
+    } catch (error) {
+        console.error(error);
+        $('#loginError').textContent = error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found'
+            ? 'E-mail ou senha incorretos.'
+            : 'Não foi possível entrar. Verifique o e-mail, a senha e a configuração do Firebase.';
+    } finally {
+        $('#loginBtn').disabled = false;
+    }
+});
+
+$('#signOutBtn').addEventListener('click', async () => {
+    try {
+        await auth.signOut();
+    } catch (error) {
+        console.error(error);
+        showToast('Não foi possível sair da conta.');
+    }
+});
+
+auth.onAuthStateChanged(async (user) => {
+    $('#loginScreen').hidden = Boolean(user);
+    $('#appMain').hidden = !user;
+    $('#signOutBtn').hidden = !user;
+    setConnection(Boolean(user));
+    if (!user) {
+        students = [];
+        return;
+    }
+    try {
+        await loadStudents();
+    } catch (error) {
+        console.error(error);
+        showToast('Não foi possível carregar os alunos. Verifique as regras de acesso do Firestore.');
+    }
+});
+
+lucide.createIcons();
